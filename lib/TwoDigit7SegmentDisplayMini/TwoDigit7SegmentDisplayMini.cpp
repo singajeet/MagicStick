@@ -8,44 +8,88 @@ TwoDigit7SegmentDisplayMini::~TwoDigit7SegmentDisplayMini(){
 
 }
 
-TwoDigit7SegmentDisplayMini::TwoDigit7SegmentDisplayMini(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin){
-   //Set the clock, data, transistor and latch pin
-  this->vDataPin = pDataPin;
-  this->vClockPin = pClockPin;
-  this->vLatchPin = pLatchPin;
-  this->vTransistorPin = pTransistorPin;
+#ifdef SEG7_VERSION1
+  TwoDigit7SegmentDisplayMini::TwoDigit7SegmentDisplayMini(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin){
+     //Set the clock, data, transistor and latch pin
+    this->vDataPin = pDataPin;
+    this->vClockPin = pClockPin;
+    this->vLatchPin = pLatchPin;
+    this->vTransistorPin = pTransistorPin;
 
-  pinMode(this->vDataPin, OUTPUT);
-  pinMode(this->vClockPin, OUTPUT);
-  pinMode(this->vLatchPin, OUTPUT);
-  pinMode(this->vTransistorPin, OUTPUT);
+    pinMode(this->vDataPin, OUTPUT);
+    pinMode(this->vClockPin, OUTPUT);
+    pinMode(this->vLatchPin, OUTPUT);
+    pinMode(this->vTransistorPin, OUTPUT);
 
-  //Initialize the display to show 0
-  digitalWrite(this->vLatchPin, LOW);
-  shiftOut(this->vDataPin, this->vClockPin, MSBFIRST, 0);
-  digitalWrite(this->vLatchPin, HIGH);
-}
+    //Initialize the display to show 0
+    digitalWrite(this->vLatchPin, LOW);
+    shiftOut(this->vDataPin, this->vClockPin, MSBFIRST, 0);
+    digitalWrite(this->vLatchPin, HIGH);
+  }
+#else
+  TwoDigit7SegmentDisplayMini::TwoDigit7SegmentDisplayMini(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pSevenSegPin1, int8_t pSevenSegPin2){
+     //Set the clock, data, transistor and latch pin
+    this->vDataPin = pDataPin;
+    this->vClockPin = pClockPin;
+    this->vLatchPin = pLatchPin;
+    this->vSevenSegPin1 = pSevenSegPin1;
+    this->vSevenSegPin2 = pSevenSegPin2;
 
-void TwoDigit7SegmentDisplayMini::setup(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin){
-  //Set the clock, data, transistor and latch pin
-  this->vDataPin = pDataPin;
-  this->vClockPin = pClockPin;
-  this->vLatchPin = pLatchPin;
-  this->vTransistorPin = pTransistorPin;
+    pinMode(this->vDataPin, OUTPUT);
+    pinMode(this->vClockPin, OUTPUT);
+    pinMode(this->vLatchPin, OUTPUT);
+    pinMode(this->vSevenSegPin1, OUTPUT);
+    pinMode(this->vSevenSegPin2, OUTPUT);
 
-  pinMode(this->vDataPin, OUTPUT);
-  pinMode(this->vClockPin, OUTPUT);
-  pinMode(this->vLatchPin, OUTPUT);
-  pinMode(this->vTransistorPin, OUTPUT);
+    //Initialize the display to show 0
+    digitalWrite(this->vLatchPin, LOW);
+    shiftOut(this->vDataPin, this->vClockPin, MSBFIRST, 0);
+    digitalWrite(this->vLatchPin, HIGH);
+  }
+#endif
 
-  //Initialize the display to show 0
-  digitalWrite(this->vLatchPin, LOW);
-  shiftOut(this->vDataPin, this->vClockPin, MSBFIRST, 0);
-  digitalWrite(this->vLatchPin, HIGH);
-}
+#ifdef SEG7_VERSION1
+  void TwoDigit7SegmentDisplayMini::setup(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin){
+    //Set the clock, data, transistor and latch pin
+    this->vDataPin = pDataPin;
+    this->vClockPin = pClockPin;
+    this->vLatchPin = pLatchPin;
+    this->vTransistorPin = pTransistorPin;
+
+    pinMode(this->vDataPin, OUTPUT);
+    pinMode(this->vClockPin, OUTPUT);
+    pinMode(this->vLatchPin, OUTPUT);
+    pinMode(this->vTransistorPin, OUTPUT);
+
+    //Initialize the display to show 0
+    digitalWrite(this->vLatchPin, LOW);
+    shiftOut(this->vDataPin, this->vClockPin, MSBFIRST, 0);
+    digitalWrite(this->vLatchPin, HIGH);
+  }
+#else
+  void TwoDigit7SegmentDisplayMini::setup(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pSevenSegPin1, int8_t pSevenSegPin2){
+    //Set the clock, data, transistor and latch pin
+    this->vDataPin = pDataPin;
+    this->vClockPin = pClockPin;
+    this->vLatchPin = pLatchPin;
+    this->vSevenSegPin1 = pSevenSegPin1;
+    this->vSevenSegPin2 = pSevenSegPin2;
+
+    pinMode(this->vDataPin, OUTPUT);
+    pinMode(this->vClockPin, OUTPUT);
+    pinMode(this->vLatchPin, OUTPUT);
+    pinMode(this->vSevenSegPin1, OUTPUT);
+    pinMode(this->vSevenSegPin2, OUTPUT);
+
+    //Initialize the display to show 0
+    digitalWrite(this->vLatchPin, LOW);
+    shiftOut(this->vDataPin, this->vClockPin, MSBFIRST, 0);
+    digitalWrite(this->vLatchPin, HIGH);
+  }
+#endif
 
 void TwoDigit7SegmentDisplayMini::print(int8_t pDigit){
-  this -> twoDigitInt2Str(pDigit);
+  this->twoDigitInt2Str(pDigit);
 }
 
 void TwoDigit7SegmentDisplayMini::print(char *pBuffer){
@@ -77,13 +121,25 @@ void TwoDigit7SegmentDisplayMini::twoDigitInt2Str(int8_t pDigit){
     digitTwo = pDigit % 10;
   }
 
-  digitalWrite(this->vTransistorPin, HIGH);
-  this->sendDigitBits(digitOne);
-  delay(vRefreshRate);
+  #ifdef SEG7_VERSION1
+    digitalWrite(this->vTransistorPin, HIGH);
+    this->sendDigitBits(digitOne);
+    delay(vRefreshRate);
 
-  digitalWrite(this->vTransistorPin, LOW);
-  this->sendDigitBits(digitTwo);
-  delay(vRefreshRate);
+    digitalWrite(this->vTransistorPin, LOW);
+    this->sendDigitBits(digitTwo);
+    delay(vRefreshRate);
+  #else
+    digitalWrite(this->vSevenSegPin1, HIGH);
+    this->sendDigitBits(digitOne);
+    delay(vRefreshRate);
+    digitalWrite(this->vSevenSegPin1, LOW);
+
+    digitalWrite(this->vSevenSegPin2, HIGH);
+    this->sendDigitBits(digitTwo);
+    delay(vRefreshRate);
+    digitalWrite(this->vSevenSegPin2, LOW);
+  #endif
 }
 
 void TwoDigit7SegmentDisplayMini::sendDigitBits(int8_t pDigit){

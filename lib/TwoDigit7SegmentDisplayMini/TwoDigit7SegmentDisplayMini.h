@@ -9,7 +9,13 @@ class TwoDigit7SegmentDisplayMini
     int8_t vDataPin;
     int8_t vClockPin;
     int8_t vLatchPin;
-    int8_t vTransistorPin;
+
+    #ifdef SEG7_VERSION1
+      int8_t vTransistorPin;
+    #else
+      int8_t vSevenSegPin1;
+      int8_t vSevenSegPin2;
+    #endif
 
     /* 7 Segment Led display consist of 7 different segments numbered from a-g as shown below...
          a
@@ -47,9 +53,15 @@ class TwoDigit7SegmentDisplayMini
   public:
     TwoDigit7SegmentDisplayMini();
     ~TwoDigit7SegmentDisplayMini();
-    TwoDigit7SegmentDisplayMini(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin);
 
-    void setup(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin);
+    #ifdef SEG7_VERSION1
+      TwoDigit7SegmentDisplayMini(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin);
+      void setup(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pTransistorPin);
+    #else
+      TwoDigit7SegmentDisplayMini(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pSevenSegPin1, int8_t pSevenSegPin2);
+      void setup(int8_t pDataPin, int8_t pClockPin, int8_t pLatchPin, int8_t pSevenSegPin1, int8_t pSevenSegPin2);
+    #endif
+
     void print(char *pBuffer);
     void print(int8_t pDigit);
     int8_t getRefreshRate(void);
