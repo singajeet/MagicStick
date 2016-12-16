@@ -7,26 +7,45 @@
 #include <Bounce2.h>
 #include <Button.h>
 #include <ButtonEventCallback.h>
+#include <Timer.h>
+#include <CmdMessenger.h>
 
 
 const byte latchPin = 10;
 const byte clockPin = 11;
 const byte dataPin = 12;
-const byte transistorPin = 9;
+
+#ifdef SEG7_VERSION1
+  const byte transistorPin = 9;
+  const byte thresholdPin = 6;
+#else
+  const byte sevenSegPin1 = 9;
+  const byte sevenSegPin2 = 6;
+  const byte thresholdPin = A4;
+#endif
+
 const byte buttonPin = 8;
 const byte sensorPin = A5;
 const byte ledPin = 13;
-const byte firstVibPin = 4;
-const byte secondVibPin = 5;
-const byte thirdVibPin = 6;
-const byte fourthVibPin = 7;
-byte sensorValue = 0;
 
-enum VibratorSequence{
-  FIRST_VIB = 0,
-  SECOND_VIB = 1,
-  THIRD_VIB = 2,
-  FOURTH_VIB = 3
+const byte vibLatchPin = 4;
+const byte vibDataPin = 5;
+const byte vibClockPin = 7;
+
+int sensorValue = 0;
+byte isSetupMode = 0;
+byte vibratorStatus = 0;
+int sensorReadEventHandle;
+int displayWriteEventHandle;
+int vibrateEventHandle;
+int sensorThreshHoldValue;
+
+CmdMessenger cmdMessenger = CmdMessenger(Serial);
+
+enum{
+    kAcknowledge,
+    kError,
+    kGetSensorValue
 };
 
 enum VibrateStyle{
@@ -36,61 +55,94 @@ enum VibrateStyle{
 };
 
 VibrateStyle currentVibStyle = VIB_ALL_AUTO;
+#ifdef SEG7_VERSION1
+  TwoDigit7SegmentDisplayMini display(dataPin, clockPin, latchPin, transistorPin);
+#else
+  TwoDigit7SegmentDisplayMini display(dataPin, clockPin, latchPin, sevenSegPin1, sevenSegPin2);
+#endif
 
-TwoDigit7SegmentDisplayMini display(dataPin, clockPin, latchPin, transistorPin);
 PushButton button(buttonPin);
 FSR fsr(sensorPin);
 Led led(ledPin);
 VibratorArray vibArray(4);
-Vibrator *pointerToVibrators;
+Timer timer;
+
+void OnUnknownCommand(){
+  cmdMessenger.sendCmd(kError, "Unknown Command");
+}
+
+void OnGetSensorValueCommand(){
+  cmdMessenger.sendCmd(kAcknowledge, sensorValue);
+}
+
+void attachCommandCallbacks(){
+  cmdMessenger.attach(OnUnknownCommand);
+  cmdMessenger.attach(kGetSensorValue, OnGetSensorValueCommand);
+}
 
 void onButtonPressed(Button& bttn){
-  if(currentVibStyle == VIB_ALL_AUTO){
-    currentVibStyle = VIB_ALL_MAN;
-    led.blink();
-  }
-  else if(currentVibStyle == VIB_ALL_MAN){
-    currentVibStyle = VIB_ONE_AT_TIME;
-    led.blink();
+  if(isSetupMode == 0){
+    isSetupMode = 1;
+    led.on();
   }
   else{
-    currentVibStyle = VIB_ALL_AUTO;
-    led.blink();
+    isSetupMode = 0;
+    led.off();
+  }
+}
+
+void sensorReadEventCallback(){
+  if(isSetupMode == 0)
+    sensorValue = fsr.sense();
+  else
+    sensorThreshHoldValue = analogRead(thresholdPin);
+}
+
+void displayWriteEventCallback(){
+  if(isSetupMode == 0)
+    display.print(sensorValue);
+  else
+    display.print(sensorThreshHoldValue);
+}
+
+void vibrateEventCallback()
+{
+  if(sensorValue > sensorThreshHoldValue){
+    if(vibratorStatus == LOW)
+    {
+      //put vibrator on
+      vibratorStatus = HIGH;
+    }
+  } else
+  {
+    if(vibratorStatus == HIGH){
+      //put vibrator off
+      vibratorStatus = LOW;
+    }
   }
 }
 
 void setup()
 {
-  //Setup the pins for each vibrator used
-  pointerToVibrators = vibArray.getPointerToVibrators();
-  pointerToVibrators[FIRST_VIB].setVibPin(firstVibPin);
-  pointerToVibrators[SECOND_VIB].setVibPin(secondVibPin);
-  pointerToVibrators[THIRD_VIB].setVibPin(thirdVibPin);
-  pointerToVibrators[FOURTH_VIB].setVibPin(fourthVibPin);
-
+  //Register the callback for timers
+  sensorReadEventHandle = timer.every(500, sensorReadEventCallback);
+  displayWriteEventHandle = timer.every(250, displayWriteEventCallback);
+  vibrateEventHandle = timer.every(600, vibrateEventCallback);
   //Register the callback for the button
   button.onPress(onButtonPressed);
-  Serial.begin(19200);
+
+  //Set pinmode for threshold pot
+  pinMode(thresholdPin, INPUT);
+
+  //Start serial comm and attach the callbacks
+  Serial.begin(115200);
+  attachCommandCallbacks();
+  cmdMessenger.sendCmd(kAcknowledge, "MagicStick started!");
 }
 
 void loop()
 {
   button.update();
-  sensorValue = fsr.sense();
-  display.print(sensorValue);
-
-  Serial.println(sensorValue);
-
-  // if(sensorValue > 5){
-  //   if(currentVibStyle == VIB_ALL_AUTO)
-  //     vibArray.vibrateAll();
-  //   else if(currentVibStyle == VIB_ALL_MAN)
-  //   {
-  //     vibArray.vibrateOnAll();
-  //     delay(40);
-  //     vibArray.vibrateOffAll();
-  //   }
-  //   else if(currentVibStyle == VIB_ONE_AT_TIME)
-  //     vibArray.vibrateOneAtTime();
-  // }
+  timer.update();
+  cmdMessenger.feedinSerialData();
 }
