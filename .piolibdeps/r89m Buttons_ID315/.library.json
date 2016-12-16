@@ -1,0 +1,34 @@
+{
+    "name": "r89m Buttons", 
+    "repository": {
+        "url": "https://github.com/r89m/Button.git", 
+        "type": "git"
+    }, 
+    "platforms": [
+        "atmelavr", 
+        "atmelsam", 
+        "espressif8266", 
+        "intel_arc32", 
+        "microchippic32", 
+        "nordicnrf51", 
+        "teensy", 
+        "timsp430"
+    ], 
+    "frameworks": [
+        "arduino"
+    ], 
+    "version": "2.0.0", 
+    "authors": [
+        {
+            "maintainer": false, 
+            "name": "Richard Miles", 
+            "url": "https://github.com/r89m", 
+            "email": null
+        }
+    ], 
+    "keywords": [
+        "button"
+    ], 
+    "id": 315, 
+    "description": "Handle different types of buttons and button events easily (touch, capacitive, push)"
+}

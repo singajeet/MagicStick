@@ -1,0 +1,48 @@
+{
+    "version": "1.0.0", 
+    "repository": {
+        "url": "https://github.com/r89m/PushButton.git", 
+        "type": "git"
+    }, 
+    "platforms": [
+        "atmelavr", 
+        "atmelsam", 
+        "espressif8266", 
+        "intel_arc32", 
+        "microchippic32", 
+        "nordicnrf51", 
+        "teensy", 
+        "timsp430"
+    ], 
+    "description": "Handle PushButtons, debounced using the Bounce2 library", 
+    "frameworks": [
+        "arduino"
+    ], 
+    "dependencies": [
+        {
+            "name": "r89m Buttons", 
+            "authors": [
+                "Richard Miles"
+            ]
+        }, 
+        {
+            "name": "Bounce2", 
+            "authors": [
+                "Thomas O Fredericks"
+            ]
+        }
+    ], 
+    "authors": [
+        {
+            "maintainer": false, 
+            "name": "Richard Miles", 
+            "url": "https://github.com/r89m", 
+            "email": null
+        }
+    ], 
+    "keywords": [
+        "button"
+    ], 
+    "id": 314, 
+    "name": "r89m PushButton"
+}
