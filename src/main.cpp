@@ -2,7 +2,7 @@
 #include <TwoDigit7SegmentDisplayMini.h>
 #include <Led.h>
 #include <FSR.h>
-#include <VibratorManager.h>
+#include <Vibrator595.h>
 #include <PushButton.h>
 #include <Bounce2.h>
 #include <Button.h>
@@ -64,7 +64,7 @@ VibrateStyle currentVibStyle = VIB_ALL_AUTO;
 PushButton button(buttonPin);
 FSR fsr(sensorPin);
 Led led(ledPin);
-VibratorArray vibArray(4);
+Vibrator595 vib(vibLatchPin, vibDataPin, vibClockPin);
 Timer timer;
 
 void OnUnknownCommand(){
@@ -111,12 +111,14 @@ void vibrateEventCallback()
     if(vibratorStatus == LOW)
     {
       //put vibrator on
+      vib.vibrateOn();
       vibratorStatus = HIGH;
     }
   } else
   {
     if(vibratorStatus == HIGH){
       //put vibrator off
+      vib.vibrateOff();
       vibratorStatus = LOW;
     }
   }
