@@ -28,9 +28,9 @@ const byte buttonPin = 8;
 const byte sensorPin = A5;
 const byte ledPin = 13;
 
-const byte vibLatchPin = 4;
+const byte vibLatchPin = 7;
 const byte vibDataPin = 5;
-const byte vibClockPin = 7;
+const byte vibClockPin = 4;
 
 int sensorValue = 0;
 byte isSetupMode = 0;
