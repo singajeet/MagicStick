@@ -10,11 +10,14 @@
 #include <Timer.h>
 #include <CmdMessenger.h>
 
-
+//Below pins to be used by 7 Segment
 const byte latchPin = 10;
 const byte clockPin = 11;
 const byte dataPin = 12;
 
+//VER1: 2 digits in Ver1 display are controlled by 2 transistors which further are controlled by uC using pin 9
+//making pin9 high switch on one transistor and switch off the otherone and viceversa
+//VER2: 2 digits in Ver2 are controlled by uC directly using pin 9 and 6
 #ifdef SEG7_VERSION1
   const byte transistorPin = 9;
   const byte thresholdPin = 6;
