@@ -59,8 +59,6 @@
   {
       this->vTotal = this->vTotal - this->vReadings[this->vReadIndex];
       this->vSensorValue = analogRead(this->vSensorPin);
-      Serial.print(this->vSensorValue);
-      Serial.print(" - ");
       this->vSensorValue = constrain(this->vSensorValue, this->vSensorMinValue, this->vSensorMaxValue);
 
       this->vReadings[this->vReadIndex] = this->vSensorValue;

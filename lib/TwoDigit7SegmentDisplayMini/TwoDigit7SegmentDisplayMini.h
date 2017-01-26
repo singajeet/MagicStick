@@ -2,7 +2,7 @@
 
 #ifndef TWODIGIT7SEGMENTDISPLAYMINI
 #define TWODIGIT7SEGMENTDISPLAYMINI
-#define SEG7_VERSION1
+//#define SEG7_VERSION1
 
 class TwoDigit7SegmentDisplayMini
 {

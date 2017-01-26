@@ -8,7 +8,9 @@
 #include <Button.h>
 #include <ButtonEventCallback.h>
 #include <Timer.h>
-#include <CmdMessenger.h>
+
+//Serial comm speed
+const int SERIAL_SPEED = 9600;
 
 //Below pins to be used by 7 Segment
 const byte latchPin = 10;
@@ -16,73 +18,63 @@ const byte clockPin = 11;
 const byte dataPin = 12;
 
 //VER1: 2 digits in Ver1 display are controlled by 2 transistors which further are controlled by uC using pin 9
-//making pin9 high switch on one transistor and switch off the otherone and viceversa
+//making pin9 high switch on one transistor and switch off the otherone and viceversa.
+//Threshold pot is on pin 6 in this version
 //VER2: 2 digits in Ver2 are controlled by uC directly using pin 9 and 6
+//Threshold pot is connected to A4 in this version
 #ifdef SEG7_VERSION1
   const byte transistorPin = 9;
   const byte thresholdPin = 6;
 #else
-  const byte sevenSegPin1 = 9;
-  const byte sevenSegPin2 = 6;
+  const byte sevenSegPin1 = 6;
+  const byte sevenSegPin2 = 9;
   const byte thresholdPin = A4;
 #endif
 
+//button, FSR sensor and LED pins
 const byte buttonPin = 8;
 const byte sensorPin = A5;
 const byte ledPin = 13;
 
+//Vibrators are attached on below pins using 74HC595
 const byte vibLatchPin = 7;
 const byte vibDataPin = 5;
 const byte vibClockPin = 4;
 
+//Global variable to hold sensor value
 int sensorValue = 0;
+
+//Setup mode will allow to read threshold value from pot and display same on 7 seg
 byte isSetupMode = 0;
+
+//If high will keep vib's on until it goes low
 byte vibratorStatus = 0;
+
+//handlers to various events used in this program
 int sensorReadEventHandle;
 int displayWriteEventHandle;
 int vibrateEventHandle;
+int serialCommEventHandle;
+
+//Pot threshold value
 int sensorThreshHoldValue;
 
-CmdMessenger cmdMessenger = CmdMessenger(Serial);
-
-enum{
-    kAcknowledge,
-    kError,
-    kGetSensorValue
-};
-
-enum VibrateStyle{
-  VIB_ONE_AT_TIME,
-  VIB_ALL_AUTO,
-  VIB_ALL_MAN
-};
-
-VibrateStyle currentVibStyle = VIB_ALL_AUTO;
+//Build 7 seg object based on the version selected, please see above comments
+//for more information
 #ifdef SEG7_VERSION1
   TwoDigit7SegmentDisplayMini display(dataPin, clockPin, latchPin, transistorPin);
 #else
   TwoDigit7SegmentDisplayMini display(dataPin, clockPin, latchPin, sevenSegPin1, sevenSegPin2);
 #endif
 
+//Class object for various components used in this program
 PushButton button(buttonPin);
 FSR fsr(sensorPin);
 Led led(ledPin);
 Vibrator595 vib(vibLatchPin, vibDataPin, vibClockPin);
 Timer timer;
 
-void OnUnknownCommand(){
-  cmdMessenger.sendCmd(kError, "Unknown Command");
-}
-
-void OnGetSensorValueCommand(){
-  cmdMessenger.sendCmd(kAcknowledge, sensorValue);
-}
-
-void attachCommandCallbacks(){
-  cmdMessenger.attach(OnUnknownCommand);
-  cmdMessenger.attach(kGetSensorValue, OnGetSensorValueCommand);
-}
-
+//Button press event handler/callback
 void onButtonPressed(Button& bttn){
   if(isSetupMode == 0){
     isSetupMode = 1;
@@ -94,6 +86,8 @@ void onButtonPressed(Button& bttn){
   }
 }
 
+//Timer event scheduled to run every 10 sec
+//Read either FSR or Pot depending upon setup mode selected
 void sensorReadEventCallback(){
   if(isSetupMode == 0)
     sensorValue = fsr.sense();
@@ -101,6 +95,8 @@ void sensorReadEventCallback(){
     sensorThreshHoldValue = analogRead(thresholdPin);
 }
 
+//Timer event scheduled to run every 5 sec
+//Display value of either FSR or Pot depending upon setup mode selected
 void displayWriteEventCallback(){
   if(isSetupMode == 0)
     display.print(sensorValue);
@@ -108,6 +104,9 @@ void displayWriteEventCallback(){
     display.print(sensorThreshHoldValue);
 }
 
+//Timer event scheduled to run every 12 sec
+//Switch on the vib's if FSR value is greater than threshold and keep it
+//on unless the FSR value drops below the threshold
 void vibrateEventCallback()
 {
   if(sensorValue > sensorThreshHoldValue){
@@ -127,27 +126,41 @@ void vibrateEventCallback()
   }
 }
 
+//Callback to send the sensor val back to PC
+void serialCommEventCallback(){
+  if(Serial.availableForWrite()){
+    Serial.print("SENS_VAL:");
+    Serial.println(sensorValue);
+    //Serial.flush();
+  }
+}
+
+//Setup module
 void setup()
 {
+
   //Register the callback for timers
-  sensorReadEventHandle = timer.every(500, sensorReadEventCallback);
-  displayWriteEventHandle = timer.every(250, displayWriteEventCallback);
-  vibrateEventHandle = timer.every(600, vibrateEventCallback);
+  sensorReadEventHandle = timer.every(10, sensorReadEventCallback);
+  displayWriteEventHandle = timer.every(5, displayWriteEventCallback);
+  vibrateEventHandle = timer.every(12, vibrateEventCallback);
+  serialCommEventHandle = timer.every(50, serialCommEventCallback);
+
   //Register the callback for the button
   button.onPress(onButtonPressed);
 
   //Set pinmode for threshold pot
   pinMode(thresholdPin, INPUT);
 
-  //Start serial comm and attach the callbacks
-  Serial.begin(115200);
-  attachCommandCallbacks();
-  cmdMessenger.sendCmd(kAcknowledge, "MagicStick started!");
+  //Start serial comm
+  Serial.begin(SERIAL_SPEED);
+
+  while(!Serial){
+    ; //Wait for serial port to connect
+  }
 }
 
 void loop()
 {
   button.update();
   timer.update();
-  cmdMessenger.feedinSerialData();
 }
