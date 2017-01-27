@@ -57,7 +57,7 @@ int vibrateEventHandle;
 int serialCommEventHandle;
 
 //Pot threshold value
-int sensorThreshHoldValue;
+int sensorThreshHoldValue = 1000;
 
 //Build 7 seg object based on the version selected, please see above comments
 //for more information
@@ -127,10 +127,15 @@ void vibrateEventCallback()
 }
 
 //Callback to send the sensor val back to PC
+//Frame Structure: FS|FSR:<fsr reading>|POT:<pot reading>|FE
 void serialCommEventCallback(){
   if(Serial.availableForWrite()){
-    Serial.print("SENS_VAL:");
-    Serial.println(sensorValue);
+    Serial.print("FS|");
+    Serial.print("FSR:");
+    Serial.print(sensorValue);
+    Serial.print("|POT:");
+    Serial.print(sensorThreshHoldValue);
+    Serial.println("|FE");
     //Serial.flush();
   }
 }
@@ -143,7 +148,7 @@ void setup()
   sensorReadEventHandle = timer.every(10, sensorReadEventCallback);
   displayWriteEventHandle = timer.every(5, displayWriteEventCallback);
   vibrateEventHandle = timer.every(12, vibrateEventCallback);
-  serialCommEventHandle = timer.every(50, serialCommEventCallback);
+  serialCommEventHandle = timer.every(60, serialCommEventCallback);
 
   //Register the callback for the button
   button.onPress(onButtonPressed);
