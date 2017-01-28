@@ -24,11 +24,11 @@ const byte dataPin = 12;
 //Threshold pot is connected to A4 in this version
 #ifdef SEG7_VERSION1
   const byte transistorPin = 9;
-  const byte thresholdPin = 6;
+  Sensor pot(6);
 #else
   const byte sevenSegPin1 = 6;
   const byte sevenSegPin2 = 9;
-  const byte thresholdPin = A4;
+  Sensor pot(A4);
 #endif
 
 //button, FSR sensor and LED pins
@@ -45,10 +45,13 @@ const byte vibClockPin = 4;
 int sensorValue = 0;
 
 //Setup mode will allow to read threshold value from pot and display same on 7 seg
-byte isSetupMode = 0;
+byte isSetupMode = LOW;
+
+//Serial port on / off flags
+byte isSerialOn = LOW;
 
 //If high will keep vib's on until it goes low
-byte vibratorStatus = 0;
+byte vibratorStatus = LOW;
 
 //handlers to various events used in this program
 int sensorReadEventHandle;
@@ -57,7 +60,7 @@ int vibrateEventHandle;
 int serialCommEventHandle;
 
 //Pot threshold value
-int sensorThreshHoldValue = 1000;
+int sensorThreshHoldValue = 20;
 
 //Build 7 seg object based on the version selected, please see above comments
 //for more information
@@ -75,33 +78,50 @@ Vibrator595 vib(vibLatchPin, vibDataPin, vibClockPin);
 Timer timer;
 
 //Button press event handler/callback
-void onButtonPressed(Button& bttn){
-  if(isSetupMode == 0){
-    isSetupMode = 1;
-    led.on();
-  }
-  else{
-    isSetupMode = 0;
-    led.off();
+//If pressed for less than 1 sec, it will toggle setup mode
+//If pressed longer than 1 sec, it will toggle Serial port on-off
+//void onButtonPressed(Button& bttn){
+void onButtonReleased(Button& bttn, uint16_t duration){
+  if(duration < 1000){
+      if(isSetupMode == LOW){
+        isSetupMode = HIGH;
+        led.on();
+      }
+      else{
+        isSetupMode = LOW;
+        led.off();
+      }
+  } else {
+    if(isSerialOn == LOW){
+      isSerialOn = HIGH;
+    } else {
+      isSerialOn = LOW;
+    }
   }
 }
 
 //Timer event scheduled to run every 10 sec
 //Read either FSR or Pot depending upon setup mode selected
 void sensorReadEventCallback(){
-  if(isSetupMode == 0)
+  if(isSetupMode == LOW){
     sensorValue = fsr.sense();
-  else
-    sensorThreshHoldValue = analogRead(thresholdPin);
+    if(sensorValue < 0)
+       sensorValue = 0;
+    }
+  else {
+    sensorThreshHoldValue = pot.sense();
+  }
 }
 
 //Timer event scheduled to run every 5 sec
 //Display value of either FSR or Pot depending upon setup mode selected
 void displayWriteEventCallback(){
-  if(isSetupMode == 0)
+  if(isSetupMode == LOW){
     display.print(sensorValue);
-  else
+  }
+  else{
     display.print(sensorThreshHoldValue);
+  }
 }
 
 //Timer event scheduled to run every 12 sec
@@ -129,14 +149,18 @@ void vibrateEventCallback()
 //Callback to send the sensor val back to PC
 //Frame Structure: FS|FSR:<fsr reading>|POT:<pot reading>|FE
 void serialCommEventCallback(){
-  if(Serial.availableForWrite()){
-    Serial.print("FS|");
-    Serial.print("FSR:");
-    Serial.print(sensorValue);
-    Serial.print("|POT:");
-    Serial.print(sensorThreshHoldValue);
-    Serial.println("|FE");
-    //Serial.flush();
+  if(isSerialOn == HIGH){
+    if(Serial.availableForWrite()){
+      Serial.print("FS|");
+      Serial.print("FSR:");
+      Serial.print(sensorValue);
+      Serial.print("|POT:");
+      Serial.print(sensorThreshHoldValue);
+      Serial.print("|SETUP:");
+      Serial.print(isSetupMode);
+      Serial.println("|FE");
+      //Serial.flush();
+    }
   }
 }
 
@@ -150,11 +174,12 @@ void setup()
   vibrateEventHandle = timer.every(12, vibrateEventCallback);
   serialCommEventHandle = timer.every(60, serialCommEventCallback);
 
-  //Register the callback for the button
-  button.onPress(onButtonPressed);
+  //Normalize FSR values
+  fsr.normalize();
 
-  //Set pinmode for threshold pot
-  pinMode(thresholdPin, INPUT);
+  //Register the callback for the button
+  //button.onPress(onButtonPressed);
+  button.onRelease(onButtonReleased);
 
   //Start serial comm
   Serial.begin(SERIAL_SPEED);

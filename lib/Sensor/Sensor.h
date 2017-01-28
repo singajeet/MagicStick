@@ -16,6 +16,7 @@ protected:
 	int vTotal=0;
 	int vAverage=0;
 	int vPullDownResistor = 10000;	//default resistor value - 10K ohm
+	int normalizeByVal = 0;
 
 public:
 	Sensor();
@@ -30,4 +31,5 @@ public:
 	int getRawSensorValue(void);
 	int getPullDownResistorVal(void);
 	void setPullDownResistorVal(int pValue);
+	void normalize(void);
 };

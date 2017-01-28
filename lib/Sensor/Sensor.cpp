@@ -55,6 +55,17 @@
     this->vPullDownResistor = pValue;
   }
 
+  void Sensor::normalize(){
+    int max = analogRead(this->vSensorPin);
+    for(int i=0; i < 10; i++){
+      int sampleVal = analogRead(this->vSensorPin);
+      if(sampleVal > max ){
+        max = sampleVal;
+      }
+    }
+    this->normalizeByVal = max;
+  }
+
   int Sensor::sense(void)
   {
       this->vTotal = this->vTotal - this->vReadings[this->vReadIndex];
@@ -71,5 +82,5 @@
 
        this->vAverage = this->vTotal / SENSNUMREADINGS;
 
-       return this->vAverage;
+       return this->vAverage - this->normalizeByVal;
   }
